@@ -51,7 +51,7 @@ def main():
     This app was developed by the **AI team** of the **R&D department** at **MAFIL**. Our team is dedicated to leveraging artificial intelligence and machine learning technologies to innovate and enhance the efficiency of financial services. The **AI team** at **MAFIL** is focused on research, development, and deployment of advanced AI solutions to solve real-world problems and drive digital transformation.
     """)
 
-    st.image("C:\\Users\\kolla\\Downloads\\mannapuram2.jpeg",use_column_width=True)
+    st.image("www.github.com/Akash-kolladikkel/PDF_Compressor/blob/main/mannapuram2.jpeg",use_column_width=True)
     st.title("PDF Compressor")
     st.write("Upload a PDF file to compress it and download the compressed version.")
     
