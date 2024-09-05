@@ -84,7 +84,7 @@ def main():
      of financial services.
     """)
 
-    st.image("C:\\Users\\kolla\\Downloads\\mannapuram2.jpeg", width=300)
+    st.image("mannapuram2.jpeg", width=300)
     st.title("PDF Compressor")
     st.write("Upload a PDF file to compress it and download the compressed version.")
     
