@@ -1,2 +1,4 @@
 streamlit
 aspose-pdf
+aspose.words
+PyPDF2
