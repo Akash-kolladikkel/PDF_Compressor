@@ -1,57 +1,90 @@
 import streamlit as st
-import aspose.pdf as ap
+import aspose.words as aw
 from io import BytesIO
 import os
+import PyPDF2  
 
-# Function to compress PDF and get file sizes
-def pdf_compression(uploaded_file):
-    # Save the uploaded file temporarily
-    input_path = "uploaded.pdf"
-    output_path = "compressed.pdf"
+def compress_pdf(input_stream):
+    # Create a PDF renderer
+    renderer = aw.pdf2word.fixedformats.PdfFixedRenderer()
     
-    with open(input_path, "wb") as f:
-        f.write(uploaded_file.read())
+    # Set PDF read options
+    pdf_read_options = aw.pdf2word.fixedformats.PdfFixedOptions()
+    pdf_read_options.image_format = aw.pdf2word.fixedformats.FixedImageFormat.JPEG
+    pdf_read_options.jpeg_quality = 50
+    
+    # Convert PDF pages to images
+    pages_stream = renderer.save_pdf_as_images(input_stream, pdf_read_options)
+    
+    # Create a new document
+    builder = aw.DocumentBuilder()
+    
+    for i in range(len(pages_stream)):
+        # Set maximum page size to avoid the current page image scaling
+        max_page_dimension = 1584
+        page_setup = builder.page_setup
+        set_page_size(page_setup, max_page_dimension, max_page_dimension)
+        
+        # Insert the page image
+        page_image = builder.insert_image(pages_stream[i])
+        set_page_size(page_setup, page_image.width, page_image.height)
+        
+        # Set margins to 0
+        page_setup.top_margin = 0
+        page_setup.left_margin = 0
+        page_setup.bottom_margin = 0
+        page_setup.right_margin = 0
+        
+        # Insert a page break if it's not the last page
+        if i != len(pages_stream) - 1:
+            builder.insert_break(aw.BreakType.SECTION_BREAK_NEW_PAGE)
+    
+    # Save options
+    save_options = aw.saving.PdfSaveOptions()
+    save_options.cache_background_graphics = True
+    
+    # Save the document to a BytesIO object
+    output = BytesIO()
+    builder.document.save(output, save_options)
+    output.seek(0)
+    
+    # Remove the first page from the compressed PDF
+    output_without_watermark = remove_first_page(output)
+    
+    return output_without_watermark
 
-    # Load the PDF document
-    pdf_document = ap.Document(input_path)
-    
-    # Set optimization options for compression
-    pdfoptimiz = ap.optimization.OptimizationOptions()
-    pdfoptimiz.image_compression_options.compress_images = True
-    pdfoptimiz.image_compression_options.image_quality = 15
-    pdf_document.optimize_resources(pdfoptimiz)
-    
-    # Save the compressed PDF document
-    pdf_document.save(output_path)
-    
-    # Get file sizes
-    original_size = os.path.getsize(input_path)
-    compressed_size = os.path.getsize(output_path)
-    
-    # Prepare the compressed file for download
-    with open(output_path, "rb") as f:
-        compressed_file = BytesIO(f.read())
-    
-    compressed_file.seek(0)
-    
-    return compressed_file, original_size, compressed_size
+def set_page_size(page_setup, width, height):
+    page_setup.page_width = width
+    page_setup.page_height = height
 
-# Streamlit app
+def remove_first_page(pdf_stream):
+    # Use PyPDF2 to remove the first page from the compressed PDF
+    pdf_stream.seek(0)
+    reader = PyPDF2.PdfReader(pdf_stream)
+    writer = PyPDF2.PdfWriter()
+
+    # Add all pages except the first one
+    for page_num in range(1, len(reader.pages)):
+        page = reader.pages[page_num]
+        writer.add_page(page)
+    
+    # Write the modified PDF to a new BytesIO stream
+    output_stream = BytesIO()
+    writer.write(output_stream)
+    output_stream.seek(0)
+    
+    return output_stream
+
 def main():
-    primaryColor="#c3bf19"
-    backgroundColor="#f52323"
-    secondaryBackgroundColor="#000000"
-    textColor="#ffffff"
-
     # Add a sidebar for additional options
     st.sidebar.title("About Us")
     st.sidebar.write("""
-    **Manappuram** is a leading non-banking financial company (NBFC) in India, known for providing a wide range of financial services, including gold loans, microfinance, housing finance, and insurance. With a commitment to financial inclusion and customer-centric services, **Manappuram** strives to make a significant impact in the financial sector through innovation and excellence.
-
-    This app was developed by the **AI team** of the **R&D department** at **MAFIL**. Our team is dedicated to leveraging artificial intelligence and machine learning technologies to innovate and enhance the efficiency of financial services. The **AI team** at **MAFIL** is focused on research, development, and deployment of advanced AI solutions to solve real-world problems and drive digital transformation.
+     This app was developed by the **AI team** of the **R&D department** at **MAFIL**.
+     Our team is dedicated to leveraging artificial intelligence and machine learning technologies to innovate and enhance the efficiency
+     of financial services.
     """)
 
-    st.image("mannapuram2.jpeg",use_column_width=True)
+    st.image("C:\\Users\\kolla\\Downloads\\mannapuram2.jpeg", width=300)
     st.title("PDF Compressor")
     st.write("Upload a PDF file to compress it and download the compressed version.")
     
@@ -61,8 +94,16 @@ def main():
         # Display the uploaded file name
         st.write(f"Uploaded file: {uploaded_file.name}")
         
-        # Compress PDF and get file sizes
-        compressed_file, original_size, compressed_size = pdf_compression(uploaded_file)
+        # Get original file size
+        uploaded_file.seek(0)
+        original_size = len(uploaded_file.getvalue())
+        
+        # Compress PDF
+        with st.spinner("Compressing PDF..."):
+            compressed_file = compress_pdf(uploaded_file)
+        
+        # Get compressed file size
+        compressed_size = len(compressed_file.getvalue())
         
         # Display file sizes before and after compression
         st.write(f"Original file size: {original_size / 1024:.2f} KB")
