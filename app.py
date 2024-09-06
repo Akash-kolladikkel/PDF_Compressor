@@ -2,7 +2,7 @@ import streamlit as st
 import aspose.words as aw
 from io import BytesIO
 import os
-import PyPDF2  
+import PyPDF2  # Import PyPDF2 to remove the first page
 
 def compress_pdf(input_stream):
     # Create a PDF renderer
@@ -11,7 +11,7 @@ def compress_pdf(input_stream):
     # Set PDF read options
     pdf_read_options = aw.pdf2word.fixedformats.PdfFixedOptions()
     pdf_read_options.image_format = aw.pdf2word.fixedformats.FixedImageFormat.JPEG
-    pdf_read_options.jpeg_quality = 50
+    pdf_read_options.jpeg_quality = 62
     
     # Convert PDF pages to images
     pages_stream = renderer.save_pdf_as_images(input_stream, pdf_read_options)
@@ -58,7 +58,7 @@ def set_page_size(page_setup, width, height):
     page_setup.page_height = height
 
 def remove_first_page(pdf_stream):
-    # Use PyPDF2 to remove the first page from the compressed PDF
+    # Use PyPDF2 to remove the first page from the compressed PDF(watermark page)
     pdf_stream.seek(0)
     reader = PyPDF2.PdfReader(pdf_stream)
     writer = PyPDF2.PdfWriter()
@@ -76,17 +76,20 @@ def remove_first_page(pdf_stream):
     return output_stream
 
 def main():
-    # Add a sidebar for additional options
-    st.sidebar.title("About Us")
+    # Add a sidebar for additional options and instructions
+    st.sidebar.title("Instructions")
     st.sidebar.write("""
-     This app was developed by the **AI team** of the **R&D department** at **MAFIL**.
-     Our team is dedicated to leveraging artificial intelligence and machine learning technologies to innovate and enhance the efficiency
-     of financial services.
+     - The input PDF file size should be between 1 MB and 25 MB.
+     - The compression process may take a while depending on the file size.
     """)
 
-    st.image("mannapuram2.jpeg", width=300)
     st.title("PDF Compressor")
+    st.info("""
+    **Note:** This PDF compression tool is powered by **Aspose**, a powerful document manipulation API.
+    Aspose enables high-quality PDF processing, including file compression, and handling various document formats efficiently.
+    """)
     st.write("Upload a PDF file to compress it and download the compressed version.")
+
     
     uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
     
@@ -98,30 +101,34 @@ def main():
         uploaded_file.seek(0)
         original_size = len(uploaded_file.getvalue())
         
-        # Compress PDF
-        with st.spinner("Compressing PDF..."):
-            compressed_file = compress_pdf(uploaded_file)
-        
-        # Get compressed file size
-        compressed_size = len(compressed_file.getvalue())
-        
-        # Display file sizes before and after compression
-        st.write(f"Original file size: {original_size / 1024:.2f} KB")
-        st.write(f"Compressed file size: {compressed_size / 1024:.2f} KB")
+        # Check if the file size is within the allowed range
+        if original_size < 1 * 1024 * 1024 or original_size > 25 * 1024 * 1024:
+            st.error("The uploaded PDF file size must be between 1 MB and 25 MB.")
+        else:
+            # Compress PDF
+            with st.spinner("Compressing PDF..."):
+                compressed_file = compress_pdf(uploaded_file)
+            
+            # Get compressed file size
+            compressed_size = len(compressed_file.getvalue())
+            
+            # Display file sizes before and after compression
+            st.write(f"Original file size: {original_size / 1024:.2f} KB")
+            st.write(f"Compressed file size: {compressed_size / 1024:.2f} KB")
 
-        # Display the compression ratio
-        compression_ratio = compressed_size / original_size * 100
-        st.write(f"Compression ratio: {compression_ratio:.2f}%")
-        
-        st.success("PDF compression completed!")
-        
-        # Provide download button for the compressed PDF
-        st.download_button(
-            label="Download Compressed PDF",
-            data=compressed_file,
-            file_name="compressed_" + uploaded_file.name,
-            mime="application/pdf"
-        )
+            # Display the compression ratio
+            compression_ratio = compressed_size / original_size * 100
+            st.write(f"Compression ratio: {compression_ratio:.2f}%")
+            
+            st.success("PDF compression completed!")
+            
+            # Provide download button for the compressed PDF
+            st.download_button(
+                label="Download Compressed PDF",
+                data=compressed_file,
+                file_name="compressed_" + uploaded_file.name,
+                mime="application/pdf"
+            )
 
 if __name__ == "__main__":
     main()
