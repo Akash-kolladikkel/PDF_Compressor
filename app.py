@@ -2,7 +2,7 @@ import streamlit as st
 import aspose.words as aw
 from io import BytesIO
 import os
-import PyPDF2  # Import PyPDF2 to remove the first page
+import PyPDF2  
 
 def compress_pdf(input_stream):
     # Create a PDF renderer
